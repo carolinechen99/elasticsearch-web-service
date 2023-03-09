@@ -1,55 +1,22 @@
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use elasticsearch::http::transport::Transport;
-use elasticsearch::{Elasticsearch, SearchParts};
+use elasticsearch::{Elasticsearch, IndexParts};
 use serde_json::json;
 
-
-#[get("/{name}")]
-async fn hello(web::Path(name): web::Path<String>) -> impl Responder {
-    format!("Hello, {}!", name)
-}
-
-#[get("/search")]
-async fn search(query: web::Query<String>) -> impl Responder {
-    let transport = Transport::single_node("http://localhost:9200").unwrap();
+fn index_data() -> Result<(), Box<dyn Error>> {
+    let transport = Transport::single_node("http://localhost:9200")?;
     let client = Elasticsearch::new(transport);
 
+    let body = json!({
+        "name": "Alice",
+        "age": 30,
+        "hobbies": ["reading", "swimming"]
+    });
+
     let response = client
-        .search(SearchParts::Index(&["my-index"]))
-        .body(json!({
-            "query": {
-                "match": {
-                    "name": query.into_inner()
-                }
-            }
-        }))
-        .send()
-        .await
-        .unwrap();
+        .index(IndexParts::IndexId("my-index", "1"), body)
+        .send()?;
 
-    let results = response
-        .json::<serde_json::Value>()
-        .await
-        .unwrap()["hits"]["hits"]
-        .as_array()
-        .unwrap();
+    println!("Indexed document: {:?}", response);
 
-    let names: Vec<String> = results
-        .iter()
-        .map(|result| result["_source"]["name"].as_str().unwrap().to_string())
-        .collect();
-
-    HttpResponse::Ok().json(names)
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
-        App::new()
-            .service(hello)
-            .service(search)
-    })
-    .bind("127.0.0.1:8080")?
-    .run()
-    .await
+    Ok(())
 }
