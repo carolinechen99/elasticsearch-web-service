@@ -1,1 +1,0 @@
-/Users/carolinechen/elasticsearch-web-service/elastic-web/target/debug/elastic-web: /Users/carolinechen/elasticsearch-web-service/elastic-web/src/lib.rs /Users/carolinechen/elasticsearch-web-service/elastic-web/src/main.rs
